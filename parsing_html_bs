@@ -1,43 +1,92 @@
 from bs4 import BeautifulSoup as bs
 import requests
+import pandas as pd
 import re
+from pprint import pprint
 
 
 # Задание 1. Парсим HH.RU
 
 headers = {'User-Agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/76.0.3809.100 Safari/537.36'}
-html = requests.get('https://hh.ru/search/vacancy?L_is_autosearch=false&clusters=true&enable_snippets=true&text=python&page=2', headers=headers).text
-
-parsed_hh = bs(html,'lxml')
-
-job_opportunity = parsed_hh.find_all('div',{'class':'vacancy-serp'})
-
 jobs = []
-for job in job_opportunity:
-    job_data = {}
-    job_name = job.find('a').text
-    link = job.find('a').get('href', '')
-    site = re.findall(r'\w+.ru', link)
-    salary = job.find('div', {'class':'vacancy-serp-item__compensation'})
+title = 'pr'
 
-    if not salary:
-        salary = 0
-    else:
-        salary = re.split(r'-', (re.sub(r'\xa0', '', salary.getText())))
+for i in range(2):
+    html_hh = requests.get(f'https://hh.ru/search/vacancy?text={title}&page={i}', headers=headers).text
+    parsed_hh = bs(html_hh,'lxml')
 
-    job_data['name'] = job_name
-    job_data['link'] = link
+    job_opportunity = parsed_hh.find_all('div',{'data-qa':['vacancy-serp__vacancy', 'vacancy-serp__vacancy vacancy-serp__vacancy_premium']})
 
-    # Надо понять как отделить единственную цену
+    for job in job_opportunity:
+        job_data = {}
+        job_name = job.find('a').text
+        link = job.find('a').get('href', '')
+        site = re.findall(r'\w+.ru', link)
+        salary = job.find('div',{'class':'vacancy-serp-item__compensation'})
 
-    # if salary[1] != 0 and salary != 0:
-    #     job_data['min_salary'] = salary[0]
-    #     job_data['max_salary'] = salary[1]
-    # else:
-    #     job_data['salary'] = salary
+        if salary is None:
+            salary_min = 'None'
+            salary_max = 'None'
 
-    job_data['site'] = site
-    
-    jobs.append(job_data)
+        elif 'от' in salary.getText():
+            salary_min = re.findall("\d.+", salary.getText())[0].replace('\xa0',' ')
+            salary_max = 'None'
 
-print(jobs)
+        elif 'до' in salary.getText():
+            salary_min = 'None'
+            salary_max = re.findall("\d.+", salary.getText())[0].replace('\xa0', ' ')
+
+        elif '-' in salary.getText():
+            s = re.split('-', salary.getText())
+            salary_min = s[0].replace('\xa0', ' ')
+            salary_max = s[1].replace('\xa0', ' ')
+
+        job_data['name'] = job_name
+        job_data['link'] = link
+        job_data['salary_min'] = salary_min
+        job_data['salary_max'] = salary_max
+        job_data['site'] = site
+
+        jobs.append(job_data)
+
+
+# Задание 2. Парсим Superjob
+
+for i in range(2):
+    html_sj = requests.get(f'https://www.superjob.ru/vacancy/search/?keywords={title}&page={i}', headers=headers).text
+    parsed_sj = bs(html_sj,'lxml')
+
+    job_opp_sj = parsed_sj.find_all('div',{'class':'_3syPg _1_bQo _2FJA4'})
+
+    for job in job_opp_sj:
+        job_data = {}
+        job_name = job.find('a').text
+        link = 'https://superjob.ru' + job.find('a').get('href', '')
+        site = re.findall(r'\w+.ru', link)
+        salary = job.find('span',{'class':'_3mfro _2Wp8I f-test-text-company-item-salary PlM3e _2JVkc _2VHxz'})
+
+        if salary is not None:
+            if 'от' in salary.getText():
+                salary_min = re.findall("\d.+", salary.getText())[0].replace('\xa0',' ')
+                salary_max = 'None'
+
+            elif '—' in salary.getText():
+                s_sj = re.split('\xa0—\xa0', salary.getText())
+                salary_min = s_sj[0].replace('\xa0', ' ')
+                salary_max = s_sj[1].replace('\xa0', ' ')
+            else:
+                salary_max = salary.getText().replace('\xa0', ' ')
+                salary_min = salary.getText().replace('\xa0', ' ')
+        else:
+            salary_min = 'None'
+            salary_max = 'None'
+
+        job_data['name'] = job_name
+        job_data['link'] = link
+        job_data['salary_min'] = salary_min
+        job_data['salary_max'] = salary_max
+        job_data['site'] = site
+
+        jobs.append(job_data)
+
+pprint(jobs)
