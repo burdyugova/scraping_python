@@ -4,6 +4,7 @@ import requests
 import re
 import pandas as pd
 from bs4 import BeautifulSoup as bs
+from vacancy import hh
 
 
 headers = {
@@ -105,13 +106,40 @@ job_opportunity_db(jobs)
 
 # 2) Написать функцию, которая производит поиск и выводит на экран вакансии с заработной платой больше введенной суммы
 
+
+sum = int(input('Задайте минимальное значение: '))
+
+def salary(sum):
+    object = jobs_opportunity.find({'salary_min': {'$gte': sum}}, {'name', 'salary_min'});
+    for obj in object:
+        pprint(f"<{obj['name']}> <{obj['salary_min']}>")
+
+
+salary(sum)
+
+               
+# obj = []
 # obj = []
 #
 # sum = int(input('Задайте минимальное значение: '))
+
 # object = jobs_opportunity.find()
 # for obj in object:
 #     if obj['salary_min'] != None and obj['salary_min'] != 'None' and obj['salary_min'] != 'По договорённости':
 #         ob = int(re.findall('[0-9]+', obj['salary_min'])[0])
+
+
+#         if ob >= sum:
+#             print (obj['name'], '-', ob)
+#             continue
+
+#     else:
+#         continue
+
+
+# 3*)Написать функцию, которая будет добавлять в вашу базу данных только новые вакансии с сайта
+# # 
+
 #
 #         if ob >= sum:
 #             print (obj['name'], '-', ob)
@@ -134,6 +162,7 @@ salary(sum)
 
 # 3*)Написать функцию, которая будет добавлять в вашу базу данных только новые вакансии с сайта
 # #
+
 # # jobs_opportunity.update_one(
 # #     {'link':job_data['link']},
 # #     {'$set':job_data},
